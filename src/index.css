@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* ReliefCoord HQ Design System — All colors HSL */
 
 @layer base {
   :root {
@@ -38,20 +36,21 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
+    /* Custom app tokens */
+    --background-light: 210 20% 98%;
+    --background-dark: 222.2 84% 4.9%;
+    --card-dark: 217.2 32.6% 10%;
+    --accent-red: 0 84.2% 60.2%;
+    --accent-amber: 38 92% 50%;
+    --accent-green: 142 76.2% 36.3%;
+
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -83,6 +82,15 @@ All colors MUST be HSL.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Custom app tokens (dark) */
+    --background-light: 222.2 84% 4.9%;
+    --background-dark: 222.2 84% 4.9%;
+    --card-dark: 217.2 32.6% 10%;
+    --accent-red: 0 62.8% 50%;
+    --accent-amber: 38 92% 50%;
+    --accent-green: 142 76.2% 36.3%;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -100,6 +108,17 @@ All colors MUST be HSL.
   }
 
   body {
+    font-family: 'Public Sans', sans-serif;
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
