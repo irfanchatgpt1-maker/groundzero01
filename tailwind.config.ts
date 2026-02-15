@@ -13,12 +13,21 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['"Public Sans"', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        "background-light": "hsl(var(--background-light))",
+        "background-dark": "hsl(var(--background-dark))",
+        "card-dark": "hsl(var(--card-dark))",
+        "accent-red": "hsl(var(--accent-red))",
+        "accent-amber": "hsl(var(--accent-amber))",
+        "accent-green": "hsl(var(--accent-green))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
