@@ -1,37 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { UserRole, ResourceRequest } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { UserRole } from '../types';
 import { RoleSwitcher } from './RoleSwitcher';
+import { useCamps } from '@/hooks/use-camps';
+import { useShipments, ShipmentRow, getShipmentProgress } from '@/hooks/use-shipments';
 
-const DEMO_ORDERS: ResourceRequest[] = [
-  { id: 'TRK-492021', requester: 'Main Stadium', role: 'Camp Manager', resource: 'Emergency Rations', quantity: '2,000 Units', urgency: 'HIGH', status: 'PROCESSING', eta: '2h 15m' },
-  { id: 'TRK-492022', requester: 'Main Stadium', role: 'Camp Manager', resource: 'Purified Water', quantity: '5,000 L', urgency: 'MEDIUM', status: 'DISPATCHED', eta: '45m' },
-  { id: 'TRK-492023', requester: 'Main Stadium', role: 'Camp Manager', resource: 'Medical Kits', quantity: '50 Kits', urgency: 'HIGH', status: 'DELIVERED', eta: 'Arrived' },
-];
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.2 } },
+};
+
+const staggerContainer = {
+  animate: { transition: { staggerChildren: 0.06 } },
+};
+
+const staggerItem = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
 
 export const CampManagerDashboard: React.FC<{ onRoleChange: (role: UserRole) => void }> = ({ onRoleChange }) => {
   const [activeNav, setActiveNav] = useState('Dashboard');
-  const [selectedOrder, setSelectedOrder] = useState<ResourceRequest | null>(DEMO_ORDERS[1]);
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
 
+  const { data: camps = [], isLoading: campsLoading } = useCamps();
+  const { data: shipments = [], isLoading: shipmentsLoading } = useShipments({ destination: 'Main Stadium' });
+  const [selectedOrder, setSelectedOrder] = useState<ShipmentRow | null>(null);
+
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    if (shipments.length > 0 && !selectedOrder) {
+      setSelectedOrder(shipments[0]);
     }
+  }, [shipments, selectedOrder]);
+
+  useEffect(() => {
+    if (isDarkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
   }, [isDarkMode]);
 
   const renderContent = () => {
     switch (activeNav) {
       case 'Dashboard':
         return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <ManagerStat icon="business" value="42" label="ACTIVE CAMPS" trend="+2" />
-              <ManagerStat icon="people" value="12,850" label="OCCUPANCY" trend="+5.2%" />
-              <ManagerStat icon="report_problem" value="18" label="RESOURCE GAPS" trend="Critical" isCritical />
-              <ManagerStat icon="local_shipping" value="24" label="DELIVERIES" trend="12 Active" trendColor="text-accent-green" />
-            </div>
+          <motion.div key="cm-dashboard" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="space-y-8">
+            <motion.div variants={staggerContainer} initial="initial" animate="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <motion.div variants={staggerItem}><ManagerStat icon="business" value={String(camps.length)} label="ACTIVE CAMPS" trend={`+${camps.filter(c => c.status === 'OPERATIONAL').length}`} /></motion.div>
+              <motion.div variants={staggerItem}><ManagerStat icon="people" value={camps.reduce((sum, c) => sum + c.occupancy, 0).toLocaleString()} label="OCCUPANCY" trend="+5.2%" /></motion.div>
+              <motion.div variants={staggerItem}><ManagerStat icon="report_problem" value={String(camps.filter(c => c.status === 'CRITICAL').length)} label="RESOURCE GAPS" trend="Critical" isCritical /></motion.div>
+              <motion.div variants={staggerItem}><ManagerStat icon="local_shipping" value={String(shipments.length)} label="DELIVERIES" trend={`${shipments.filter(s => s.status !== 'ARRIVED').length} Active`} trendColor="text-accent-green" /></motion.div>
+            </motion.div>
             <div className="bg-card dark:bg-card-dark rounded-[2.5rem] border border-border shadow-sm p-8">
               <h3 className="text-[10px] font-black uppercase tracking-widest mb-6 text-foreground">Facility Status Feed</h3>
               <div className="space-y-4">
@@ -40,20 +58,24 @@ export const CampManagerDashboard: React.FC<{ onRoleChange: (role: UserRole) => 
                  <ActivityItem icon="emergency" title="Shortage Alert" time="3h ago" desc="Dormitory A requires additional blankets." />
               </div>
             </div>
-          </div>
+          </motion.div>
         );
       case 'Logistics':
         return (
-          <div className="grid grid-cols-12 gap-8 animate-in fade-in duration-500">
+          <motion.div key="cm-logistics" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="grid grid-cols-12 gap-8">
             <div className="col-span-12 lg:col-span-5 space-y-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Active Shipments</h3>
-                <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">3 TOTAL</span>
+                <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">{shipments.length} TOTAL</span>
               </div>
               <div className="space-y-3">
-                {DEMO_ORDERS.map((order) => (
-                  <button 
+                {shipmentsLoading ? (
+                  <div className="p-8 text-center text-muted-foreground text-xs font-bold">Loading...</div>
+                ) : shipments.map((order) => (
+                  <motion.button
                     key={order.id}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
                     onClick={() => setSelectedOrder(order)}
                     className={`w-full text-left p-5 rounded-3xl border transition-all ${
                       selectedOrder?.id === order.id 
@@ -62,9 +84,9 @@ export const CampManagerDashboard: React.FC<{ onRoleChange: (role: UserRole) => 
                     }`}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{order.id}</span>
+                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{order.tracking_id}</span>
                       <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase ${
-                        order.status === 'DELIVERED' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
+                        order.status === 'ARRIVED' || order.status === 'DELIVERED' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
                       }`}>{order.status}</span>
                     </div>
                     <h4 className="font-black text-foreground text-sm">{order.resource}</h4>
@@ -74,106 +96,135 @@ export const CampManagerDashboard: React.FC<{ onRoleChange: (role: UserRole) => 
                         <span className="material-icons text-xs">schedule</span> ETA: {order.eta}
                       </p>
                     </div>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
 
             <div className="col-span-12 lg:col-span-7">
-              {selectedOrder ? (
-                <div className="bg-card dark:bg-card-dark rounded-[2.5rem] border border-border shadow-xl overflow-hidden sticky top-24">
-                  <div className="p-8 border-b border-border bg-muted/50">
-                    <div className="flex justify-between items-center mb-6">
-                      <div>
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tracking Status</p>
-                        <h2 className="text-2xl font-black text-foreground mt-1">{selectedOrder.id}</h2>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Expected Arrival</p>
-                        <p className="text-lg font-black text-primary uppercase mt-1">{selectedOrder.eta}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="relative flex justify-between items-center mb-4 px-2">
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-muted z-0"></div>
-                      <div className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary z-0 transition-all duration-1000 ${
-                        selectedOrder.status === 'PROCESSING' ? 'w-[15%]' : 
-                        selectedOrder.status === 'DISPATCHED' ? 'w-[50%]' : 'w-[100%]'
-                      }`}></div>
-                      
-                      <StepIcon active={true} completed={selectedOrder.status !== 'PROCESSING'} icon="shopping_bag" label="Ordered" />
-                      <StepIcon active={selectedOrder.status !== 'PROCESSING'} completed={selectedOrder.status === 'DELIVERED'} icon="inventory_2" label="Processed" />
-                      <StepIcon active={selectedOrder.status === 'DISPATCHED' || selectedOrder.status === 'DELIVERED'} completed={selectedOrder.status === 'DELIVERED'} icon="local_shipping" label="In Transit" />
-                      <StepIcon active={selectedOrder.status === 'DELIVERED'} completed={selectedOrder.status === 'DELIVERED'} icon="task_alt" label="Delivered" />
-                    </div>
-                  </div>
-
-                  <div className="p-8 space-y-8">
-                    <div className="grid grid-cols-2 gap-8">
-                      <div>
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Carrier Details</p>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
-                            <span className="material-icons">account_circle</span>
-                          </div>
-                          <div>
-                            <p className="text-xs font-black text-foreground">Rajesh Kumar</p>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Vehicle ID: DL-8902</p>
-                          </div>
+              <AnimatePresence mode="wait">
+                {selectedOrder ? (
+                  <motion.div key={selectedOrder.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }} className="bg-card dark:bg-card-dark rounded-[2.5rem] border border-border shadow-xl overflow-hidden sticky top-24">
+                    <div className="p-8 border-b border-border bg-muted/50">
+                      <div className="flex justify-between items-center mb-6">
+                        <div>
+                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tracking Status</p>
+                          <h2 className="text-2xl font-black text-foreground mt-1">{selectedOrder.tracking_id}</h2>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Expected Arrival</p>
+                          <p className="text-lg font-black text-primary uppercase mt-1">{selectedOrder.eta}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Shipment Weight</p>
-                        <p className="text-sm font-black text-foreground">142.5 kg</p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1">24 Cartons</p>
+                      
+                      <div className="relative flex justify-between items-center mb-4 px-2">
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-muted z-0"></div>
+                        <motion.div 
+                          className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary z-0"
+                          initial={{ width: '0%' }}
+                          animate={{ width: `${getShipmentProgress(selectedOrder.status)}%` }}
+                          transition={{ duration: 1, ease: 'easeOut' as const }}
+                        />
+                        <StepIcon active={true} completed={getShipmentProgress(selectedOrder.status) > 15} icon="shopping_bag" label="Ordered" />
+                        <StepIcon active={getShipmentProgress(selectedOrder.status) >= 50} completed={getShipmentProgress(selectedOrder.status) > 50} icon="inventory_2" label="Processed" />
+                        <StepIcon active={getShipmentProgress(selectedOrder.status) >= 75} completed={getShipmentProgress(selectedOrder.status) === 100} icon="local_shipping" label="In Transit" />
+                        <StepIcon active={getShipmentProgress(selectedOrder.status) === 100} completed={getShipmentProgress(selectedOrder.status) === 100} icon="task_alt" label="Delivered" />
                       </div>
                     </div>
 
-                    <div className="space-y-6">
-                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Shipment Journey</p>
-                      <div className="space-y-6 relative ml-4">
-                        <div className="absolute left-[-16px] top-2 bottom-2 w-0.5 bg-border"></div>
-                        <TimelineItem active title="Out for delivery" time="Today, 10:24 AM" location="Central Hub" />
-                        <TimelineItem title="Arrived at distribution center" time="Today, 04:12 AM" location="Regional Warehouse" />
-                        <TimelineItem title="Shipment picked up" time="Yesterday, 08:30 PM" location="Base Port A" />
+                    <div className="p-8 space-y-8">
+                      <div className="grid grid-cols-2 gap-8">
+                        <div>
+                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Carrier Details</p>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
+                              <span className="material-icons">account_circle</span>
+                            </div>
+                            <div>
+                              <p className="text-xs font-black text-foreground">Vehicle {selectedOrder.vehicle_id}</p>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{selectedOrder.weight ? `${selectedOrder.weight} kg` : 'N/A'}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Priority</p>
+                          <span className={`px-3 py-1 text-[10px] font-black rounded-lg border uppercase tracking-widest ${
+                            selectedOrder.urgency === 'HIGH' ? 'bg-red-50 text-accent-red border-red-100' : 'bg-amber-50 text-accent-amber border-amber-100'
+                          }`}>{selectedOrder.urgency}</span>
+                        </div>
                       </div>
                     </div>
+                  </motion.div>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center p-20 text-center border-2 border-dashed border-border rounded-[3rem]">
+                     <span className="material-icons text-4xl text-muted-foreground/30 mb-4">local_shipping</span>
+                     <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Select an order to track live</p>
                   </div>
-                </div>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center p-20 text-center border-2 border-dashed border-border rounded-[3rem]">
-                   <span className="material-icons text-4xl text-muted-foreground/30 mb-4">local_shipping</span>
-                   <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Select an order to track live</p>
-                </div>
-              )}
+                )}
+              </AnimatePresence>
             </div>
-          </div>
+          </motion.div>
         );
       case 'Camps':
         return (
-          <div className="bg-card dark:bg-card-dark rounded-3xl border border-border shadow-sm overflow-hidden animate-in fade-in duration-500">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[700px]">
-                <thead className="bg-muted/50 border-b border-border">
-                  <tr>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Camp Facility</th>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Zone</th>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Load Status</th>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  <CampRow name="Main Stadium" id="CMP-001" loc="Central" load="92" current="2,300" max="2,500" />
-                  <CampRow name="North Hall" id="CMP-012" loc="Suburbs" load="78" current="468" max="600" />
-                  <CampRow name="Exhibition Bloc" id="CMP-009" loc="Industrial" load="100" current="4,000" max="4,000" isCritical />
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <motion.div key="cm-camps" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+            {campsLoading ? (
+              <div className="p-12 text-center text-muted-foreground text-xs font-bold">Loading...</div>
+            ) : (
+              <div className="bg-card dark:bg-card-dark rounded-3xl border border-border shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left min-w-[700px]">
+                    <thead className="bg-muted/50 border-b border-border">
+                      <tr>
+                        <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Camp Facility</th>
+                        <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Zone</th>
+                        <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Load Status</th>
+                        <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {camps.map(camp => {
+                        const load = Math.round((camp.occupancy / camp.capacity) * 100);
+                        const isCritical = load >= 95;
+                        return (
+                          <tr key={camp.id} className="hover:bg-muted/50 transition-colors">
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCritical ? 'bg-red-50 text-accent-red' : 'bg-blue-50 text-primary'}`}>
+                                  <span className="material-icons text-lg">holiday_village</span>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-black text-foreground">{camp.name}</p>
+                                  <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">{camp.id.slice(0, 8)}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-8 py-5 text-xs font-bold text-muted-foreground">{camp.location}</td>
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                                  <motion.div className={`h-full ${isCritical ? 'bg-accent-red' : 'bg-primary'}`} initial={{ width: 0 }} animate={{ width: `${load}%` }} transition={{ duration: 0.8, ease: 'easeOut' as const }} />
+                                </div>
+                                <span className={`text-[10px] font-black ${isCritical ? 'text-accent-red' : 'text-foreground'}`}>{load}%</span>
+                              </div>
+                              <p className="text-[9px] text-muted-foreground font-bold mt-1">{camp.occupancy.toLocaleString()} / {camp.capacity.toLocaleString()}</p>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              <button className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">Manage</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </motion.div>
         );
       case 'Settings':
         return (
-          <div className="space-y-8 animate-in fade-in duration-500 max-w-2xl">
+          <motion.div key="cm-settings" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="space-y-8 max-w-2xl">
             <h2 className="text-2xl font-black text-foreground tracking-tight">Facility Hub Settings</h2>
             <div className="bg-card dark:bg-card-dark rounded-[2.5rem] border border-border overflow-hidden shadow-sm">
                <div className="p-8 border-b border-border">
@@ -194,7 +245,7 @@ export const CampManagerDashboard: React.FC<{ onRoleChange: (role: UserRole) => 
                  </div>
                </div>
             </div>
-          </div>
+          </motion.div>
         );
       default:
         return <div className="text-muted-foreground font-black uppercase text-[10px] tracking-widest p-20 text-center bg-card dark:bg-card-dark rounded-3xl border border-dashed border-border">Module Initializing...</div>;
@@ -223,7 +274,9 @@ export const CampManagerDashboard: React.FC<{ onRoleChange: (role: UserRole) => 
       </nav>
 
       <main className="flex-1 overflow-y-auto p-8 max-w-[1400px] w-full mx-auto space-y-8">
-        {renderContent()}
+        <AnimatePresence mode="wait">
+          {renderContent()}
+        </AnimatePresence>
       </main>
     </div>
   );
@@ -248,48 +301,26 @@ const StepIcon: React.FC<{ active: boolean; completed: boolean; icon: string; la
   </div>
 );
 
-const TimelineItem: React.FC<{ title: string; time: string; location: string; active?: boolean }> = ({ title, time, location, active }) => (
-  <div className="relative group">
-    <div className={`absolute left-[-22px] top-1.5 w-3 h-3 rounded-full border-2 bg-card dark:bg-background transition-all ${active ? 'border-primary scale-125' : 'border-border'}`}></div>
-    <div className="flex justify-between items-start">
-      <div>
-        <p className={`text-xs font-black ${active ? 'text-foreground' : 'text-muted-foreground'}`}>{title}</p>
-        <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1 tracking-widest">{location}</p>
-      </div>
-      <p className="text-[9px] font-bold text-muted-foreground">{time}</p>
-    </div>
-  </div>
-);
-
 const ManagerStat: React.FC<{ icon: string; value: string; label: string; trend: string; trendColor?: string; isCritical?: boolean }> = ({ icon, value, label, trend, trendColor = 'text-accent-amber', isCritical }) => (
-  <div className="bg-card dark:bg-card-dark p-6 rounded-[2rem] border border-border shadow-sm">
+  <motion.div whileHover={{ scale: 1.02, boxShadow: '0 10px 40px rgba(0,0,0,0.08)' }} className="bg-card dark:bg-card-dark p-6 rounded-[2rem] border border-border shadow-sm cursor-default">
     <div className="flex items-start justify-between mb-6">
        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isCritical ? 'bg-red-50 dark:bg-red-950/10 text-accent-red' : 'bg-blue-50 dark:bg-blue-950/10 text-primary'}`}><span className="material-icons-round">{icon}</span></div>
        <span className={`text-[9px] font-black px-2 py-1 rounded-lg border border-border bg-muted ${isCritical ? 'text-accent-red' : trendColor}`}>{isCritical ? '!' : '↗'} {trend}</span>
     </div>
     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{label}</p>
     <h3 className="text-3xl font-black text-foreground mt-1 tracking-tight">{value}</h3>
-  </div>
+  </motion.div>
 );
 
 const ActivityItem: React.FC<{ icon: string; title: string; time: string; desc: string }> = ({ icon, title, time, desc }) => (
   <div className="flex gap-4 p-4 hover:bg-muted/50 transition-colors rounded-2xl group border border-transparent">
      <div className="w-10 h-10 bg-muted text-muted-foreground rounded-xl flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors"><span className="material-icons text-lg">{icon}</span></div>
      <div className="flex-1">
-        <div className="flex justify-between items-center"><p className="font-bold text-foreground text-sm">{title}</p><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{time}</span></div>
-        <p className="text-xs text-muted-foreground font-medium mt-1">{desc}</p>
+       <div className="flex justify-between items-start">
+         <p className="text-xs font-black text-foreground">{title}</p>
+         <span className="text-[9px] text-muted-foreground font-bold">{time}</span>
+       </div>
+       <p className="text-xs text-muted-foreground mt-1">{desc}</p>
      </div>
   </div>
-);
-
-const CampRow: React.FC<{ name: string; id: string; loc: string; load: string; current: string; max: string; isCritical?: boolean }> = ({ name, id, loc, load, current, max }) => (
-  <tr className="hover:bg-muted/50 transition-colors">
-    <td className="px-8 py-6"><p className="text-sm font-black text-foreground">{name}</p><p className="text-[10px] text-muted-foreground font-bold uppercase mt-1 tracking-widest">{id}</p></td>
-    <td className="px-8 py-6 text-xs font-bold text-muted-foreground uppercase tracking-widest">{loc}</td>
-    <td className="px-8 py-6 w-64">
-       <div className="flex justify-between text-[10px] font-black mb-1 uppercase tracking-widest"><span className={parseInt(load) > 90 ? 'text-accent-red' : 'text-primary'}>{load}% Load</span><span className="text-muted-foreground">{current}/{max}</span></div>
-       <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden"><div className={`h-full ${parseInt(load) > 90 ? 'bg-accent-red' : 'bg-primary'}`} style={{ width: `${load}%` }}></div></div>
-    </td>
-    <td className="px-8 py-6 text-right"><button className="px-4 py-1.5 border border-border rounded-xl text-primary text-[10px] font-black uppercase tracking-widest hover:bg-muted">Manage</button></td>
-  </tr>
 );
