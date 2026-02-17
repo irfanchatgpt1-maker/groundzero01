@@ -14,7 +14,203 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_logs: {
+        Row: {
+          action: string
+          actor_name: string | null
+          created_at: string
+          details: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_name?: string | null
+          created_at?: string
+          details?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_name?: string | null
+          created_at?: string
+          details?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      camps: {
+        Row: {
+          capacity: number
+          created_at: string
+          id: string
+          lead: string | null
+          location: string
+          name: string
+          occupancy: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          id?: string
+          lead?: string | null
+          location: string
+          name: string
+          occupancy?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          id?: string
+          lead?: string | null
+          location?: string
+          name?: string
+          occupancy?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory: {
+        Row: {
+          camp_id: string | null
+          category: string
+          created_at: string
+          id: string
+          is_critical: boolean | null
+          item_name: string
+          min_threshold: number
+          quantity: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          camp_id?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          is_critical?: boolean | null
+          item_name: string
+          min_threshold?: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          camp_id?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          is_critical?: boolean | null
+          item_name?: string
+          min_threshold?: number
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_camp_id_fkey"
+            columns: ["camp_id"]
+            isOneToOne: false
+            referencedRelation: "camps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipments: {
+        Row: {
+          created_at: string
+          destination: string
+          eta: string | null
+          id: string
+          origin: string
+          quantity: string
+          resource: string
+          status: string
+          tracking_id: string
+          updated_at: string
+          urgency: string
+          vehicle_id: string | null
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string
+          destination: string
+          eta?: string | null
+          id?: string
+          origin: string
+          quantity: string
+          resource: string
+          status?: string
+          tracking_id: string
+          updated_at?: string
+          urgency?: string
+          vehicle_id?: string | null
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string
+          destination?: string
+          eta?: string | null
+          id?: string
+          origin?: string
+          quantity?: string
+          resource?: string
+          status?: string
+          tracking_id?: string
+          updated_at?: string
+          urgency?: string
+          vehicle_id?: string | null
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      volunteer_tasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          mission: string | null
+          status: string
+          title: string
+          updated_at: string
+          urgency: string
+          volunteer_name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          mission?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          urgency?: string
+          volunteer_name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          mission?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          urgency?: string
+          volunteer_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
