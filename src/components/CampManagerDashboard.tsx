@@ -207,7 +207,7 @@ export const CampManagerDashboard: React.FC<{ onRoleChange: (role: UserRole) => 
         <div className="flex items-center gap-10">
           <div className="flex items-center gap-3">
              <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20"><span className="material-icons">emergency</span></div>
-             <h1 className="font-black text-foreground hidden sm:block tracking-tight">ReliefManager</h1>
+             <h1 className="font-black text-foreground hidden sm:block tracking-tight">GroundZero</h1>
           </div>
           <div className="flex items-center gap-6 h-16 overflow-x-auto no-scrollbar">
             <NavTab label="Dashboard" active={activeNav === 'Dashboard'} onClick={() => setActiveNav('Dashboard')} />

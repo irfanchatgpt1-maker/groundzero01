@@ -371,8 +371,8 @@ export const AdminDashboard: React.FC<{ onRoleChange: (role: UserRole) => void }
             <span className="material-icons">waves</span>
           </div>
           <div>
-            <h1 className="font-black text-lg text-foreground leading-tight tracking-tight">ReliefAdmin</h1>
-            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.2em]">COORD HQ</p>
+            <h1 className="font-black text-lg text-foreground leading-tight tracking-tight">GroundZero</h1>
+            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.2em]">ADMIN HQ</p>
           </div>
         </div>
         

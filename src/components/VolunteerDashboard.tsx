@@ -181,7 +181,7 @@ export const VolunteerDashboard: React.FC<{ onRoleChange: (role: UserRole) => vo
       <aside className="w-72 bg-card dark:bg-card-dark border-r border-border flex flex-col shrink-0 z-[100]">
         <div className="p-8 flex items-center gap-3">
           <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20"><span className="material-icons">ac_unit</span></div>
-          <h1 className="font-black text-xl text-foreground leading-none tracking-tight">ReliefHub</h1>
+          <h1 className="font-black text-xl text-foreground leading-none tracking-tight">GroundZero</h1>
         </div>
         <nav className="flex-1 p-4 flex flex-col gap-1">
           <SidebarLink active={activeSidebar === 'Dashboard'} icon="dashboard" label="Field View" onClick={() => setActiveSidebar('Dashboard')} />
