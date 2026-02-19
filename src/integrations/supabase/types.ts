@@ -80,6 +80,39 @@ export type Database = {
         }
         Relationships: []
       }
+      conflict_events: {
+        Row: {
+          cloud_data: Json | null
+          created_at: string
+          id: string
+          local_data: Json
+          record_id: string
+          resolution: string
+          resolved_at: string
+          table_name: string
+        }
+        Insert: {
+          cloud_data?: Json | null
+          created_at?: string
+          id?: string
+          local_data: Json
+          record_id: string
+          resolution?: string
+          resolved_at?: string
+          table_name: string
+        }
+        Update: {
+          cloud_data?: Json | null
+          created_at?: string
+          id?: string
+          local_data?: Json
+          record_id?: string
+          resolution?: string
+          resolved_at?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           camp_id: string | null
