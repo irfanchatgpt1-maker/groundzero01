@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToGoogleSheets } from '@/lib/export-utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ExportDropdownProps {
   data: Record<string, unknown>[];
@@ -9,6 +11,7 @@ interface ExportDropdownProps {
 
 export const ExportDropdown: React.FC<ExportDropdownProps> = ({ data, filename }) => {
   const [open, setOpen] = useState(false);
+  const [sheetsLoading, setSheetsLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,6 +27,28 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({ data, filename }
     if (type === 'csv') exportToCSV(data, filename);
     else exportToGoogleSheets(data, filename);
     setOpen(false);
+  };
+
+  const handleSheetsExport = async () => {
+    if (data.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+    if (sheetsLoading) return;
+    setSheetsLoading(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('export-to-sheets', {
+        body: { data, sheetTab: filename },
+      });
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+      toast.success(`Exported ${result.rowsAppended} rows to Google Sheets`);
+      setOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Google Sheets export failed');
+    } finally {
+      setSheetsLoading(false);
+    }
   };
 
   return (
@@ -42,14 +67,23 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({ data, filename }
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-52 bg-card dark:bg-card-dark border border-border rounded-2xl shadow-xl z-50 overflow-hidden"
+            className="absolute right-0 top-full mt-2 w-60 bg-card dark:bg-card-dark border border-border rounded-2xl shadow-xl z-50 overflow-hidden"
           >
+            <button
+              onClick={handleSheetsExport}
+              disabled={sheetsLoading}
+              className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              <span className="material-icons text-green-600 text-lg">cloud_upload</span>
+              {sheetsLoading ? 'Exporting...' : 'Google Sheets (instant)'}
+            </button>
+            <div className="border-t border-border" />
             <button
               onClick={() => handleExport('gsheet')}
               className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-foreground hover:bg-muted transition-colors"
             >
               <span className="material-icons text-green-600 text-lg">table_chart</span>
-              Google Sheets (.tsv)
+              Google Sheets (.tsv file)
             </button>
             <div className="border-t border-border" />
             <button

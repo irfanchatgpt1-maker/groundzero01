@@ -7,6 +7,8 @@ import { UserRole } from "./types";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { CampManagerDashboard } from "./components/CampManagerDashboard";
 import { VolunteerDashboard } from "./components/VolunteerDashboard";
+import { ConnectionProvider } from "./lib/connection-mode";
+import { ConnectionStatusBanner } from "./components/ConnectionStatusBanner";
 
 const queryClient = new QueryClient();
 
@@ -29,11 +31,14 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <div className="min-h-screen bg-background-light dark:bg-background-dark overflow-hidden flex flex-col">
-          {renderDashboard()}
-        </div>
+        <ConnectionProvider>
+          <Toaster />
+          <Sonner />
+          <div className="min-h-screen bg-background-light dark:bg-background-dark overflow-hidden flex flex-col">
+            <ConnectionStatusBanner />
+            {renderDashboard()}
+          </div>
+        </ConnectionProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
